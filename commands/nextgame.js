@@ -4,7 +4,12 @@ const rootUrl = 'https://api-web.nhle.com/v1';
 
 async function getNextGameDetails(teamABBR) {
     let details = {};
-    await axios.get(`${rootUrl}/club-schedule/${teamABBR}/week/now`).then(response => {
+    await axios.get(`${rootUrl}/club-schedule/${teamABBR}/week/now`, {
+        headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+        }
+    }).then(response => {
         const rawDate = response.data.games[0].startTimeUTC;
         const venueOffset = response.data.games[0].venueUTCOffset;
         const utcTime = new Date(Date.parse(rawDate));
@@ -15,13 +20,14 @@ async function getNextGameDetails(teamABBR) {
 
         details.gameCenter = response.data.games[0].gameCenterLink;
 
-        if (response.data.games[0].gameState = 'FUT') {
+        if (response.data.games[0].gameState == 'FUT') {
             details.status = 'Preview';
         }
         else {
             details.status = 'Live';
-            details.homeTeamScore = 1;
-            details.awayTeamScore = 2;
+            details.homeTeamScore = response.data.games[0].homeTeam.score;
+            details.awayTeamScore = response.data.games[0].awayTeam.score;
+            details.period = response.data.games[0].periodDescriptor.number
         }
 
         details.homeTeamName = homeTeamName;
@@ -43,7 +49,7 @@ module.exports = {
                 .setAutocomplete(true)
                 .setRequired(true)),
     async autocomplete(interaction) {
-        const focusedValue = interaction.options.getFocused();
+        const focusedValue = interaction.options.getFocused().toLowerCase();
         const choices = [{ name: 'Devils', value: 'NJD' },
         { name: 'Islanders', value: 'NYI' },
         { name: 'Rangers', value: 'NYR' },
