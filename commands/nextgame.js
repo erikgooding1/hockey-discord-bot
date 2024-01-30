@@ -2,14 +2,12 @@ const { SlashCommandBuilder, hyperlink } = require('discord.js');
 const axios = require('axios');
 const rootUrl = 'https://api-web.nhle.com/v1';
 
+// TODO:
+// Add handling for when nextStartDate is null
+
 async function getNextGameDetails(teamABBR) {
     let details = {};
-    await axios.get(`${rootUrl}/club-schedule/${teamABBR}/week/now`, {
-        headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache',
-        }
-    }).then(response => {
+    const processResponse = (response) => {
         const rawDate = response.data.games[0].startTimeUTC;
         const venueOffset = response.data.games[0].venueUTCOffset;
         const utcTime = new Date(Date.parse(rawDate));
@@ -34,6 +32,24 @@ async function getNextGameDetails(teamABBR) {
         details.awayTeamName = awayTeamName;
         details.date = venueDateAndTime;
         details.timeZone = response.data.games[0].venueTimezone;
+    }
+
+    await axios.get(`${rootUrl}/club-schedule/${teamABBR}/week/now`, {
+        headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+        }
+    }).then(async(response) => {
+        if(response.data.games.length === 0) {
+            await axios.get(`${rootUrl}/club-schedule/${teamABBR}/week/${response.data.nextStartDate}`, {
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache',
+                }
+            }).then(nextStartDateResponse => processResponse(nextStartDateResponse));
+        }else {
+            processResponse(response);
+        }
     });
     return details;
 }
@@ -101,7 +117,7 @@ module.exports = {
 
         if (details.date.getHours() > 12) {
             const hour = details.date.getHours() - 12;
-            details.date.getMinutes() == 0 ? minute = '00' : minute = details.date.getMinutes();
+            minute = (details.date.getMinutes() < 10 ? '0' : '') + details.date.getMinutes();
 
             outputDate = details.date.getMonth() + 1 + '/' + details.date.getDate() + '/' + details.date.getFullYear()
                 + ' ' + hour + ':' + minute + 'pm';
