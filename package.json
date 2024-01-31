@@ -7,6 +7,11 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
   },
+  "nodemonConfig": {
+    "watch": ["commands", "events"],
+    "ext": "js,json",
+    "ignore": ["node_modules", ".github"]
+  },
   "author": "",
   "license": "ISC",
   "dependencies": {
