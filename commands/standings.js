@@ -4,7 +4,6 @@ const rootUrl = 'https://api-web.nhle.com/v1';
 
 
 async function getStandings(year, format) {
-    // TODO: Add handling for when format value is provided
     let standings = [];
 
     const processResponse = (response) => {
@@ -44,7 +43,7 @@ async function getStandings(year, format) {
         };
 
         let standingsHeader = `\`TEAM${calculatePadding('TEAM', maxWidths.teamAbbrev)}W${calculatePadding('W', maxWidths.wins)}L${calculatePadding('L', maxWidths.losses)}OTL${calculatePadding('OTL', maxWidths.otLosses)}PTS${calculatePadding('PTS', maxWidths.points)}\n`;
-        //let buildRecordString(record) = `${record.teamAbbrev}${calculatePadding(record.teamAbbrev, maxWidths.teamAbbrev)}${record.wins}${calculatePadding(record.wins, maxWidths.wins)}${record.losses}${calculatePadding(record.losses, maxWidths.losses)}${record.otLosses}${calculatePadding(record.otLosses, maxWidths.otLosses)}${record.points}${calculatePadding(record.points, maxWidths.points)}\n`;
+
         const buildRecordString = (record) => {
             return `${record.teamAbbrev}${calculatePadding(record.teamAbbrev, maxWidths.teamAbbrev)}${record.wins}${calculatePadding(record.wins, maxWidths.wins)}${record.losses}${calculatePadding(record.losses, maxWidths.losses)}${record.otLosses}${calculatePadding(record.otLosses, maxWidths.otLosses)}${record.points}${calculatePadding(record.points, maxWidths.points)}\n`;
         }
@@ -76,7 +75,6 @@ async function getStandings(year, format) {
 
             standings.forEach(record => {
                 if (record.wildcardSequence == 0) {
-                    console.log(record.teamName);
                     switch (record.divisionName) {
                         case 'Atlantic':
                             atlanticStandings += buildRecordString(record);
@@ -113,8 +111,7 @@ async function getStandings(year, format) {
             pacificStandings += '`\n';
             eastWildcardStandings += '`\n';
             westWildcardStandings += '`\n';
-            let formattedStandings = "East\n" + atlanticStandings + metropolitanStandings + eastWildcardStandings + "West\n" + centralStandings + pacificStandings + westWildcardStandings;
-            console.log(formattedStandings);
+            let formattedStandings = "Eastern\n" + atlanticStandings + metropolitanStandings + eastWildcardStandings + "Western\n" + centralStandings + pacificStandings + westWildcardStandings;
             return formattedStandings;
         }
 
@@ -173,18 +170,27 @@ async function getStandings(year, format) {
 
     }
 
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
     let requestUrl;
 
     if (year == null) {
+        // If year is not provided get current season's standings
         requestUrl = `${rootUrl}/standings/now`;
     } else {
-        if (year + 1 >= currentYear) {
-            requestUrl = `${rootUrl}/standings/now`;
-        } else {
-            requestUrl = `${rootUrl}/standings/${parseInt(year) + 1}-02-01`
-        }
+
+        // Else retrieve the end date for the season provided to make the request for the final standings of that date
+        await axios.get(`${rootUrl}/standings-season`, {
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache',
+            }
+        }).then(response => {
+            response.data.seasons.forEach(season => {
+                if (Math.floor(season.id/10000) == year) {
+                    requestUrl = `${rootUrl}/standings/${season.standingsEnd}`;
+                }
+            }
+            );
+        });
     }
 
     await axios.get(requestUrl, {
@@ -232,7 +238,6 @@ module.exports = {
         await interaction.reply({
             embeds: [standingsEmbed],
         })
-        //await interaction.reply(`Standings for ${year == null ? 'current' : year} season: \n\n${standings}`);
 
     }
 };
