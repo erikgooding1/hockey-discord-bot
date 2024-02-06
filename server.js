@@ -76,3 +76,10 @@ for (const file of eventFiles) {
 */
 
 client.login(process.env.TOKEN);
+
+process.on('SIGINT', () => {
+	// Perform cleanup tasks here, such as closing database connections, etc.
+	console.log('Received SIGINT. Shutting down gracefully...');
+	process.exit(0); // Exit with success status code
+});
+  
