@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, hyperlink, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, hyperlink, EmbedBuilder, Client } = require('discord.js');
 const axios = require('axios');
 const rootUrl = 'https://api-web.nhle.com/v1';
 
@@ -42,10 +42,10 @@ async function getStandings(year, format) {
             points: Math.max(...standings.map(record => record.points.toString().length), 3),
         };
 
-        let standingsHeader = `\`TEAM${calculatePadding('TEAM', maxWidths.teamAbbrev)}W${calculatePadding('W', maxWidths.wins)}L${calculatePadding('L', maxWidths.losses)}OTL${calculatePadding('OTL', maxWidths.otLosses)}PTS${calculatePadding('PTS', maxWidths.points)}\n`;
+        let standingsHeader = `\`TEAM${calculatePadding('TEAM', 9)}W${calculatePadding('W', maxWidths.wins)}L${calculatePadding('L', maxWidths.losses)}OTL${calculatePadding('OTL', maxWidths.otLosses)}PTS${calculatePadding('PTS', maxWidths.points)}\`\n`;
 
         const buildRecordString = (record) => {
-            return `${record.teamAbbrev}${calculatePadding(record.teamAbbrev, maxWidths.teamAbbrev)}${record.wins}${calculatePadding(record.wins, maxWidths.wins)}${record.losses}${calculatePadding(record.losses, maxWidths.losses)}${record.otLosses}${calculatePadding(record.otLosses, maxWidths.otLosses)}${record.points}${calculatePadding(record.points, maxWidths.points)}\n`;
+            return `<:caps:1224753727769018368> \`${record.teamAbbrev}${calculatePadding(record.teamAbbrev, maxWidths.teamAbbrev)}${record.wins}${calculatePadding(record.wins, maxWidths.wins)}${record.losses}${calculatePadding(record.losses, maxWidths.losses)}${record.otLosses}${calculatePadding(record.otLosses, maxWidths.otLosses)}${record.points}${calculatePadding(record.points, maxWidths.points)}\`\n`;
         }
 
         const formatConferenceStandings = (standings) => {
@@ -59,10 +59,13 @@ async function getStandings(year, format) {
                     westernStandings += buildRecordString(record);
                 }
             });
-            easternStandings += '`\n';
-            westernStandings += '`\n';
-            let formattedStandings = 'Eastern Conference:\n' + easternStandings + 'Western Conference:\n' + westernStandings;
-            return formattedStandings;
+            easternStandings += '\n';
+            westernStandings += '\n';
+            return {
+                easternStandings: easternStandings,
+                westernStandings: westernStandings
+
+            }
         }
 
         const formatWildcardStandings = (standings) => {
@@ -72,6 +75,7 @@ async function getStandings(year, format) {
             let pacificStandings = standingsHeader;
             let eastWildcardStandings = standingsHeader;
             let westWildcardStandings = standingsHeader;
+
 
             standings.forEach(record => {
                 if (record.wildcardSequence == 0) {
@@ -92,36 +96,41 @@ async function getStandings(year, format) {
                             break;
                     }
                 } else {
-                    switch (record.conferenceName) {
-                        case 'Eastern':
-                            eastWildcardStandings += buildRecordString(record);
-                            break;
-                        case 'Western':
-                            westWildcardStandings += buildRecordString(record);
-                            break;
-                        default:
-                            break;
+                    if(record.conferenceName == "Eastern") {
+                        eastWildcardStandings += buildRecordString(record);
+                    } else {
+                        westWildcardStandings += buildRecordString(record);
                     }
                 }
                 
             });
-            atlanticStandings += '`\n';
-            metropolitanStandings += '`\n';
-            centralStandings += '`\n';
-            pacificStandings += '`\n';
-            eastWildcardStandings += '`\n';
-            westWildcardStandings += '`\n';
-            let formattedStandings = "Eastern\n" + atlanticStandings + metropolitanStandings + eastWildcardStandings + "Western\n" + centralStandings + pacificStandings + westWildcardStandings;
-            return formattedStandings;
+            atlanticStandings += '\n';
+            metropolitanStandings += '\n';
+            centralStandings += '\n';
+            pacificStandings += '\n';
+            eastWildcardStandings += '\n';
+            westWildcardStandings += '\n';
+            return {
+                atlanticStandings: atlanticStandings,
+                metropolitanStandings: metropolitanStandings,
+                centralStandings: centralStandings,
+                pacificStandings: pacificStandings,
+                eastWildcardStandings: eastWildcardStandings,
+                westWildcardStandings: westWildcardStandings
+            }
+            //return formattedStandings;
         }
 
         const formatLeagueStandings = (standings) => {
             let leagueStandings = standingsHeader;
+
             standings.forEach(record => {
                 leagueStandings += buildRecordString(record);
             });
-            leagueStandings += '`\n';
-            return leagueStandings;
+
+            return {
+                leagueStandings: leagueStandings
+            }
         }
 
         const formatDivisionStandings = (standings) => {
@@ -147,12 +156,16 @@ async function getStandings(year, format) {
                         break;
                 }
             });
-            atlanticStandings += '`\n';
-            metropolitanStandings += '`\n';
-            centralStandings += '`\n';
-            pacificStandings += '`\n';
-            let formattedStandings = "Atlantic Division:\n" + atlanticStandings + "Metropolitan Division:\n" + metropolitanStandings + "Central Division:\n" + centralStandings + "Pacific Division:\n" + pacificStandings;
-            return formattedStandings;
+            atlanticStandings += '\n';
+            metropolitanStandings += '\n';
+            centralStandings += '\n';
+            pacificStandings += '\n';
+            return {
+                atlanticStandings: atlanticStandings,
+                metropolitanStandings: metropolitanStandings,
+                centralStandings: centralStandings,
+                pacificStandings: pacificStandings,
+            }
         }
 
 
@@ -232,9 +245,36 @@ module.exports = {
             .setAuthor({ name: 'NHL Info Bot', iconURL: 'https://logodownload.org/wp-content/uploads/2021/06/nhl-logo.png', url: 'https://discord.js.org' })
 
         const standings = await getStandings(year, format);
-        standingsEmbed.addFields({
-            name: 'NHL Standings', value: `${standings}`, inline: false
-        });
+        switch (format) {
+            case 'conference':
+                standingsEmbed.addFields(
+                    {name: 'Eastern Conference', value: `${standings.easternStandings}`},
+                    {name: 'Western Conference', value: `${standings.westernStandings}`}
+                );
+                break;
+            case 'wildcard':
+                standingsEmbed.addFields(
+                    {name: 'Atlantic', value: `${standings.atlanticStandings}`},
+                    {name: 'Metropolitan', value: `${standings.metropolitanStandings}`},
+                    {name: 'Eastern WC', value: `${standings.eastWildcardStandings}`},
+                    {name: 'Central', value: `${standings.centralStandings}`},
+                    {name: 'Western', value: `${standings.pacificStandings}`}, 
+                    {name: 'Western WC', value: `${standings.westWildcardStandings}`}
+                );
+                break;
+            case 'league':
+                // uses setDescription due to fields having 1024 char limit
+                standingsEmbed.setDescription(`${standings.leagueStandings}`);
+                break;
+            case 'division':
+            default:
+                standingsEmbed.addFields(
+                    {name: 'Atlantic', value: `${standings.atlanticStandings}`},
+                    {name: 'Metropolitan', value: `${standings.metropolitanStandings}`},
+                    {name: 'Central', value: `${standings.centralStandings}`},
+                    {name: 'Western', value: `${standings.pacificStandings}`}
+                );
+        }
         await interaction.reply({
             embeds: [standingsEmbed],
         })
