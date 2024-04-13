@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, hyperlink, EmbedBuilder, Client } = require('discord.js');
 const axios = require('axios');
 const rootUrl = 'https://api-web.nhle.com/v1';
-const teamLogos = require('./teamlogos.json');
+const teamLogos = require('../assets/teamlogos.json');
 
 
 async function getStandings(year, format) {
@@ -21,6 +21,7 @@ async function getStandings(year, format) {
             });
         });
     }
+    
 
     const formatStandings = (standings, format) => {
 

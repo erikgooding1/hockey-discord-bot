@@ -1,0 +1,5 @@
+{
+    "watch": ["./commands", "./events"],
+    "exec": "node deploy-commands.js && node server.js"
+  }
+  
